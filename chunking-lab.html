@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chunking Strategies Lab</title>
+<style>
+:root{--bg:#f7f6f2;--panel:#ffffff;--text:#1f1e1c;--muted:#6b6a64;--border:#e2e0d8;--accent:#185fa5;--onacc:#ffffff;--danger:#c0392b;
+--h0b:#e6f1fb;--h0f:#0c447c;--h1b:#e1f5ee;--h1f:#085041;--h2b:#faeeda;--h2f:#633806;--h3b:#eeedfe;--h3f:#3c3489;--h4b:#fbeaf0;--h4f:#72243e;--h5b:#eaf3de;--h5f:#27500a;}
+@media (prefers-color-scheme:dark){:root{--bg:#1a1a19;--panel:#242422;--text:#ecebe6;--muted:#a3a29b;--border:#3a3936;--accent:#85b7eb;--onacc:#0b1a2a;--danger:#f09595;
+--h0b:#0c447c;--h0f:#e6f1fb;--h1b:#085041;--h1f:#e1f5ee;--h2b:#633806;--h2f:#faeeda;--h3b:#3c3489;--h3f:#eeedfe;--h4b:#72243e;--h4f:#fbeaf0;--h5b:#27500a;--h5f:#eaf3de;}}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text)}
+header{padding:20px 24px 4px}
+h1{font-size:22px;margin:0;font-weight:600}
+header p{margin:4px 0 0;color:var(--muted)}
+.grid{display:grid;grid-template-columns:350px minmax(0,1fr);gap:18px;padding:14px 24px 40px}
+@media (max-width:920px){.grid{grid-template-columns:1fr}}
+.box{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:14px}
+.box h2{font-size:13px;margin:0 0 10px;font-weight:600;color:var(--muted);letter-spacing:.02em}
+select,input[type=number],input[type=text],textarea{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:7px 9px;font:inherit;font-size:14px}
+textarea{font-family:ui-monospace,Consolas,Menlo,monospace;font-size:13px;min-height:170px;resize:vertical;line-height:1.5}
+.prm{display:block;margin:0 0 12px}
+.pk{display:block;font-family:ui-monospace,Consolas,Menlo,monospace;font-size:13px;font-weight:600;margin-bottom:4px}
+.ph{display:block;font-size:12px;color:var(--muted);margin-top:3px;line-height:1.45}
+.prm input[type=checkbox]{width:18px;height:18px;vertical-align:middle;margin:2px 0}
+button{background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font:inherit;font-size:14px;cursor:pointer}
+button:hover{border-color:var(--muted)}
+button.pri{background:var(--accent);color:var(--onacc);border-color:var(--accent)}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.bar label{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.bar input[type=range]{width:120px}
+#cap{font-size:15px;min-height:50px;padding:10px 14px;border-left:3px solid var(--accent);background:var(--panel);border-radius:0 8px 8px 0;margin:12px 0}
+#notes .note{font-size:13px;background:var(--h2b);color:var(--h2f);border-radius:8px;padding:8px 12px;margin:0 0 10px}
+#source{white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Consolas,Menlo,monospace;font-size:13px;line-height:2;max-height:380px;overflow:auto;position:relative}
+.h0{background:var(--h0b);color:var(--h0f)}.h1{background:var(--h1b);color:var(--h1f)}.h2{background:var(--h2b);color:var(--h2f)}
+.h3{background:var(--h3b);color:var(--h3f)}.h4{background:var(--h4b);color:var(--h4f)}.h5{background:var(--h5b);color:var(--h5f)}
+.ovl{background:repeating-linear-gradient(45deg,var(--h2b) 0 5px,var(--h3b) 5px 10px);color:var(--text);text-decoration:underline dashed}
+.mt{outline:2px solid var(--accent);outline-offset:1px;border-radius:3px}
+.cut{color:var(--danger);font-weight:700;margin:0 3px;display:inline-block}
+.bdg{display:inline-block;font-family:system-ui,sans-serif;font-size:11px;padding:0 6px;margin:0 3px;border-radius:10px;border:1px solid var(--border);background:var(--panel);color:var(--muted);line-height:1.6;vertical-align:middle}
+.bdg.bad{border-color:var(--danger);color:var(--danger);font-weight:600}
+.pop{animation:pop .55s cubic-bezier(.2,.8,.3,1.25)}
+@keyframes pop{0%{opacity:0;transform:translateY(-16px) scale(.9)}100%{opacity:1;transform:none}}
+.cut.pop{animation:snip .65s ease}
+@keyframes snip{0%{transform:scale(0) rotate(-120deg)}60%{transform:scale(2) rotate(20deg)}100%{transform:none}}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted);margin-top:10px}
+.legend span i{display:inline-block;width:14px;height:12px;border-radius:3px;vertical-align:middle;margin-right:5px}
+#panels{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px}
+.pnl,#ret{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px}
+#ret{margin-top:14px;border:2px solid var(--accent)}
+.pt{font-weight:600;font-size:14px;margin-bottom:8px}
+.cnt{font-weight:400;color:var(--muted);font-size:12px;margin-left:6px}
+.cards{max-height:470px;overflow:auto;position:relative}
+.card{border-radius:8px;padding:8px 10px;margin:0 0 8px;font-size:13px;border:2px solid transparent}
+.card .lab{font-size:12px;font-weight:600;margin-bottom:3px}
+.card .txt{white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Consolas,Menlo,monospace;font-size:12.5px}
+.card .meta{font-size:12px;margin-top:4px;opacity:.85}
+.card.match{border-color:var(--accent);animation:pulse 1s 2}
+@keyframes pulse{50%{transform:scale(1.03)}}
+u.ovu{text-decoration:underline dashed 2px;text-underline-offset:3px}
+u.pre{text-decoration:underline dashed;text-underline-offset:3px;font-style:italic}
+.empty{color:var(--muted);font-size:13px;padding:6px 0}
+.stats{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin:10px 0 0}
+.stats b{color:var(--text)}
+.about p{margin:0 0 8px;font-size:14px}
+.about ol,.about ul{margin:0 0 8px;padding-left:20px;font-size:13.5px}
+.about .tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:10px;background:var(--h2b);color:var(--h2f);margin-bottom:8px}
+.about h3{font-size:13px;margin:8px 0 4px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+<h1>Chunking strategies lab</h1>
+<p>Paste any text, pick a strategy, change the parameters, and watch the document get cut into chunks step by step.</p>
+</header>
+<div class="grid">
+<aside>
+<div class="box">
+<h2>1 · STRATEGY</h2>
+<select id="strategy"></select>
+</div>
+<div class="box about" id="about"></div>
+<div class="box">
+<h2>2 · PARAMETERS</h2>
+<div id="params"></div>
+<div id="qwrap" class="prm"><span class="pk">query</span><input type="text" id="query"><span class="ph">The question used to show retrieval for this strategy.</span></div>
+<button id="reset">Reset to defaults</button>
+</div>
+</aside>
+<main>
+<div class="box">
+<h2>3 · INPUT DOCUMENT</h2>
+<div class="bar" style="margin-bottom:8px">
+<label>Sample <select id="sample" style="width:auto"><option value="policy">HR policy (Markdown + table)</option><option value="code">Python code</option><option value="transcript">Meeting transcript (no headings)</option><option value="custom">Custom text</option></select></label>
+</div>
+<textarea id="doc" spellcheck="false"></textarea>
+</div>
+<div class="bar">
+<button class="pri" id="animate">▶ Animate</button>
+<button id="pause">⏸ Pause</button>
+<button id="back">◀ Step</button>
+<button id="fwd">Step ▶</button>
+<button id="all">Show result</button>
+<label>Step delay <input type="range" id="speed" min="150" max="2500" step="50" value="1000"><span id="spv">1000 ms</span></label>
+</div>
+<div id="cap"></div>
+<div id="notes"></div>
+<div class="box">
+<h2>SOURCE TEXT · how it is being cut</h2>
+<div id="source"></div>
+<div class="legend">
+<span><i class="h0"></i>chunk area</span>
+<span><i class="ovl"></i>overlap (in two chunks)</span>
+<span><b style="color:var(--danger)">✂</b> cut point</span>
+<span><i style="outline:2px solid var(--accent)"></i>matched by the query</span>
+<span><u class="pre">underlined</u> added or repeated text</span>
+</div>
+<div class="stats" id="stats"></div>
+</div>
+<div id="panels"></div>
+<div id="ret" style="display:none"></div>
+</main>
+</div>
+<script>
+/* ================= ALGORITHMS (no DOM) ================= */
+const SAMPLES={
+policy:`# Employee Handbook
+
+## Annual leave
+Employees get 20 leave days a year. Unused days carry over, max 5. Leave needs manager approval at least 2 weeks in advance. Dr. Rao from HR reviews disputed requests.
+
+Sick leave is separate and does not reduce annual leave. A medical certificate is needed after 3 days.
+
+## Remote work
+Staff can work remotely 2 days a week. Engineers get 3 remote days. A stable internet connection is required, and the VPN must be on.
+
+| Role | Remote days | Approval |
+|------|-------------|----------|
+| Engineer | 3 | Team lead |
+| Sales | 2 | Manager |
+| Support | 1 | Manager |
+| Design | 3 | Team lead |
+
+## Expenses
+Travel must be booked through the portal. Meals are reimbursed up to 50 USD per day. Receipts are required for every claim over 10 USD.`,
+code:`import os
+from dataclasses import dataclass
+
+MAX_CARRY = 5
+
+def get_leave(user):
+    """Return the remaining annual leave days."""
+    total = 20
+    return total - user.used
+
+@dataclass
+class RemotePolicy:
+    max_days: int = 2
+
+    def allowed(self, days):
+        return days <= self.max_days
+
+    def for_role(self, role):
+        if role == "engineer":
+            return 3
+        return self.max_days
+
+def main():
+    print(get_leave(None))
+`,
+transcript:`So for the launch we agreed the date is March 3. Marketing will prepare the landing page by end of February. The budget for ads is 20 thousand dollars. Moving on, the database migration had some issues last week. The replica lag went up to 40 seconds during peak hours. We think the index rebuild caused the lag. Engineering will rerun the index rebuild on Sunday night. Last topic is hiring. We have two open roles for backend engineers. Interviews start next Monday and the panel is Priya and Sam.`};
+const QUERIES={policy:'How many unused leave days carry over?',code:'How many remote days do engineers get?',transcript:'What caused the replica lag?'};
+const SEPS=["\n\n","\n",". "," ",""];
+
+function sz(t,u){if(u==='words')return (t.match(/\S+/g)||[]).length;if(u==='tokens')return Math.ceil(t.length/4);return t.length;}
+function trimR(src,s,e){while(s<e&&/\s/.test(src[s]))s++;while(e>s&&/\s/.test(src[e-1]))e--;return [s,e];}
+function C(src,s,e,x){const r=trimR(src,s,e);return Object.assign({s:r[0],e:r[1],text:src.slice(r[0],r[1]),raw:true},x||{});}
+
+function recAtoms(src,S,E,seps,size,lenf){
+  function split(s,e,lvl){
+    if(lenf(src.slice(s,e))<=size)return [[s,e]];
+    for(let L=lvl;L<seps.length;L++){
+      const sep=seps[L];
+      if(sep===''){const r=[];let i=s;while(i<e){let j=i+1;while(j<e&&lenf(src.slice(i,j+1))<=size)j++;r.push([i,j]);i=j;}return r;}
+      const idx=[];let k=src.indexOf(sep,s);
+      while(k!==-1&&k+sep.length<=e){idx.push(k);k=src.indexOf(sep,k+sep.length);}
+      if(!idx.length)continue;
+      const parts=[];let st=s;
+      for(const x of idx){if(x+sep.length>st)parts.push([st,x+sep.length]);st=x+sep.length;}
+      if(st<e)parts.push([st,e]);
+      const out=[];
+      for(const [a,b] of parts){if(lenf(src.slice(a,b))<=size)out.push([a,b]);else out.push(...split(a,b,L+1));}
+      return out;
+    }
+    return [[s,e]];
+  }
+  return split(S,E,0);
+}
+function mergeAtoms(src,atoms,size,ov,lenf){
+  const out=[];let cur=[];const L=(a,b)=>lenf(src.slice(a,b));
+  for(const a of atoms){
+    if(cur.length&&L(cur[0][0],a[1])>size){
+      out.push([cur[0][0],cur[cur.length-1][1]]);
+      while(cur.length&&(L(cur[0][0],cur[cur.length-1][1])>ov||L(cur[0][0],a[1])>size))cur.shift();
+    }
+    cur.push(a);
+  }
+  if(cur.length)out.push([cur[0][0],cur[cur.length-1][1]]);
+  const res=[];
+  out.map(([s,e])=>C(src,s,e)).forEach(c=>{if(c.text.length&&!res.some(r=>r.s===c.s&&r.e===c.e))res.push(c);});
+  return res;
+}
+function recChunks(src,S,E,size,ov,unit,seps){const lenf=t=>sz(t,unit||'chars');size=Math.max(1,+size||1);ov=Math.max(0,+ov||0);return mergeAtoms(src,recAtoms(src,S,E,seps||SEPS,size,lenf),size,ov,lenf);}
+
+function sentences(src,S,E){
+  S=S||0;E=E===undefined?src.length:E;const out=[];let st=S;
+  const abbr=/^(Dr|Mr|Mrs|Ms|Prof|Sr|Jr|St|vs|etc|e\.g|i\.e|Inc|Ltd|No|Fig)\.$/i;
+  for(let i=S;i<E;i++){
+    const ch=src[i];
+    if(ch==='\n'){if(src.slice(st,i).trim())out.push([st,i]);st=i+1;continue;}
+    if('.!?'.includes(ch)&&(i+1>=E||/\s/.test(src[i+1]))){
+      const w=(src.slice(st,i+1).match(/(\S+)$/)||[])[1];
+      if(w&&abbr.test(w))continue;
+      out.push([st,i+1]);st=i+1;
+    }
+  }
+  if(src.slice(st,E).trim())out.push([st,E]);
+  return out.map(([s,e])=>trimR(src,s,e)).filter(([s,e])=>e>s);
+}
+function headings(src){const re=/^(#{1,6})[ \t]+(.+)$/gm;const r=[];let m;while((m=re.exec(src)))r.push({s:m.index,e:m.index+m[0].length,lvl:m[1].length,title:m[2].trim()});return r;}
+function pathAt(hs,pos){const st=[];for(const h of hs){if(h.s>pos)break;while(st.length&&st[st.length-1].lvl>=h.lvl)st.pop();st.push(h);}return st.map(h=>h.title);}
+function lineList(src){const lines=[];let off=0;src.split('\n').forEach(t=>{lines.push({s:off,e:off+t.length,t});off+=t.length+1;});return lines;}
+
+const STOP=new Set('a an the of to in on for and or is are be by with at as it this that from was were will can get gets per we our do does how what when which who much many'.split(' '));
+function toks(t){return (t.toLowerCase().match(/[a-z0-9]+/g)||[]).filter(w=>!STOP.has(w)).map(w=>w.length>4?w.replace(/(ing|ed|es|s)$/,''):w);}
+function tfidf(texts){
+  const docs=texts.map(toks);const df={};
+  docs.forEach(d=>new Set(d).forEach(w=>{df[w]=(df[w]||0)+1;}));
+  const N=docs.length;const idf=w=>Math.log((N+1)/((df[w]||0)+1))+1;
+  const vec=d=>{const v={};d.forEach(w=>{v[w]=(v[w]||0)+1;});for(const w in v)v[w]*=idf(w);return v;};
+  return {vecs:docs.map(vec),q:t=>vec(toks(t))};
+}
+function cos(a,b){let d=0,na=0,nb=0;for(const k in a){na+=a[k]*a[k];if(b[k])d+=a[k]*b[k];}for(const k in b)nb+=b[k]*b[k];return na&&nb?d/Math.sqrt(na*nb):0;}
+function norm(v){return Math.sqrt(Object.values(v).reduce((s,x)=>s+x*x,0))||1;}
+function addV(a,b,w){const r={},na=norm(a),nb=norm(b);for(const k in a)r[k]=(r[k]||0)+a[k]/na;for(const k in b)r[k]=(r[k]||0)+w*b[k]/nb;return r;}
+function pct(a,p){const s=[...a].sort((x,y)=>x-y);if(!s.length)return 0;const i=Math.min(s.length-1,Math.max(0,(p/100)*(s.length-1)));const lo=Math.floor(i),hi=Math.ceil(i);return s[lo]+(s[hi]-s[lo])*(i-lo);}
+function topK(items,key,k){return items.map((_,i)=>i).filter(i=>items[i][key]>0).sort((a,b)=>items[b][key]-items[a][key]).slice(0,Math.max(1,+k||1));}
+
+const UNIT={k:'unit',label:'size measured in',type:'select',def:'chars',options:[{v:'chars',t:'characters'},{v:'words',t:'words'},{v:'tokens',t:'tokens (≈ characters ÷ 4)'}],help:'Real systems measure in tokens. 1 token ≈ 4 English characters.'};
+const SIZE=(d,h)=>({k:'size',label:'chunk_size',type:'number',def:d,min:5,max:5000,step:5,help:h||'Maximum length of one chunk.'});
+const OVL=(d)=>({k:'overlap',label:'chunk_overlap',type:'number',def:d,min:0,max:2000,step:5,help:'How much of the end of each chunk is repeated at the start of the next. Must be smaller than chunk_size.'});
+const TOPK=(d,h)=>({k:'k',label:'top_k',type:'number',def:d,min:1,max:20,step:1,help:h||'How many best matches to retrieve.'});
+
+const STRATS=[
+{id:'fixed',group:'Rule-based splitting',name:'1. Fixed size (+ overlap)',sample:'policy',
+ params:[SIZE(120,'Cut every N units, no matter what.'),OVL(20),UNIT],
+ intro:'Fixed size: the text is treated as one long string. It is cut every chunk_size units, ignoring words and meaning.',
+ about:{what:'Cuts the text every N characters, words or tokens. It is blind to words, sentences and meaning. Overlap repeats the end of each chunk at the start of the next one.',how:['Measure the text in the chosen unit.','Cut every chunk_size units.','Start each new chunk chunk_overlap units before the previous one ended (step = size − overlap).'],prod:['chunk_size 256–512 tokens','chunk_overlap 10–20% of chunk_size','Good as a baseline or for uniform text such as logs']},
+ run(src,p){const u=p.unit;let atoms=[];
+  if(u==='words'){const re=/\S+\s*/g;let m;while((m=re.exec(src)))atoms.push([m.index,m.index+m[0].length]);}
+  else for(let i=0;i<src.length;i++)atoms.push([i,i+1]);
+  let size=Math.max(1,+p.size),ov=Math.max(0,+p.overlap);if(u==='tokens'){size*=4;ov*=4;}
+  const notes=[];if(ov>=size){notes.push('chunk_overlap must be smaller than chunk_size, so it was reduced to chunk_size − 1.');ov=size-1;}
+  const step=size-ov;const items=[];
+  for(let i=0;i<atoms.length;i+=step){const b=Math.min(i+size,atoms.length)-1;items.push({s:atoms[i][0],e:atoms[b][1],text:src.slice(atoms[i][0],atoms[b][1]),raw:true});if(i+size>=atoms.length)break;}
+  return {panels:[{title:'Chunks',items}],sp:0,notes};}},
+{id:'recursive',group:'Rule-based splitting',name:'2. Recursive character',sample:'policy',
+ params:[SIZE(250),OVL(40),UNIT,{k:'seps',label:'separators (JSON list, tried in order)',type:'text',def:'["\\n\\n", "\\n", ". ", " ", ""]',help:'Paragraph, line, sentence end, space, then single characters as a last resort.'}],
+ intro:'Recursive: try to cut at the most natural place that still fits chunk_size, in this order: paragraph, line, sentence, word, character.',
+ about:{what:'Cuts at the most natural point that still fits the size limit, going finer only when a piece is too big.',how:['If a piece fits chunk_size, keep it.','Otherwise split it on the first separator, then use the next separator for pieces that are still too big.','Merge small pieces back up to chunk_size, carrying chunk_overlap from the previous chunk.'],prod:['chunk_size 400–512 tokens, overlap 50–100','LangChain RecursiveCharacterTextSplitter (defaults 4000 / 200 characters)','The safest default for general text']},
+ run(src,p){let seps,notes=[];try{seps=JSON.parse(p.seps);if(!Array.isArray(seps))throw 0;}catch(e){seps=SEPS;notes.push('Could not read the separators list, so the default ["\\n\\n", "\\n", ". ", " ", ""] was used.');}
+  if(+p.overlap>=+p.size)notes.push('chunk_overlap should be smaller than chunk_size.');
+  return {panels:[{title:'Chunks',items:recChunks(src,0,src.length,p.size,p.overlap,p.unit,seps)}],sp:0,notes};}},
+{id:'sentence',group:'Rule-based splitting',name:'3. Sentence-based',sample:'policy',
+ params:[{k:'per',label:'sentences_per_chunk',type:'number',def:3,min:1,max:50,step:1,help:'How many whole sentences go into one chunk.'},{k:'sovl',label:'sentence_overlap',type:'number',def:1,min:0,max:20,step:1,help:'How many sentences are repeated between neighboring chunks.'},{k:'max',label:'max_size (0 = no cap)',type:'number',def:0,min:0,max:5000,step:10,help:'Stops adding sentences when the chunk would grow past this size.'},UNIT],
+ intro:'Sentence-based: first find every real sentence end, then pack whole sentences into chunks.',
+ about:{what:'Detects real sentence boundaries, then puts N whole sentences into each chunk. A sentence is never broken.',how:['A sentence splitter finds sentence ends. It knows "Dr." is not an end.','Group sentences_per_chunk sentences into a chunk.','Optionally repeat sentence_overlap sentences and cap the size.'],prod:['3–5 sentences, or up to 512 tokens','1 sentence of overlap','spaCy or NLTK punkt as the splitter']},
+ run(src,p){const ss=sentences(src);const per=Math.max(1,+p.per),ov=Math.min(Math.max(0,+p.sovl),per-1),mx=+p.max,items=[];
+  for(let i=0;i<ss.length;){let j=i;const first=ss[i][0];
+   while(j<ss.length&&j-i<per){if(mx>0&&j>i&&sz(src.slice(first,ss[j][1]),p.unit)>mx)break;j++;}
+   items.push(C(src,first,ss[j-1][1],{cap:`Chunk ${items.length+1}: sentences #${i+1}–#${j}${i>0&&ov?` (starts with ${ov} repeated sentence${ov>1?'s':''})`:''}`}));
+   if(j>=ss.length)break;i+=Math.max(1,(j-i)-ov);}
+  const badges=ss.map((r,k)=>({pos:r[0],text:'#'+(k+1),cap:`Sentence #${k+1} detected: "${src.slice(r[0],r[1]).slice(0,60)}${r[1]-r[0]>60?'…':''}"`}));
+  return {panels:[{title:'Chunks',items}],sp:0,badges};}},
+{id:'structure',group:'Rule-based splitting',name:'4. Structure-aware (headings)',sample:'policy',
+ params:[{k:'levels',label:'split on heading levels up to',type:'select',def:'2',options:[{v:'1',t:'# only'},{v:'2',t:'# and ##'},{v:'3',t:'#, ## and ###'},{v:'6',t:'all heading levels'}],help:'Which Markdown heading levels start a new chunk.'},{k:'max',label:'max_section_size (0 = no limit)',type:'number',def:400,min:0,max:5000,step:10,help:'A section longer than this is split again with recursive splitting.'},{k:'inc',label:'keep heading text in chunk',type:'checkbox',def:true,help:'The heading path is always saved as metadata.'},UNIT],
+ intro:'Structure-aware: use the document’s own headings, so each chunk is one real section.',
+ about:{what:'Splits along the document’s own structure (Markdown headings here, or HTML tags and PDF sections), so each chunk is one topic.',how:['Find the headings up to the chosen level.','Cut right before each heading and store the heading path as metadata.','Split any section longer than max_section_size again with recursive splitting.'],prod:['Split on #, ## and ###','Max section 512–1,000 tokens, then recursive','Metadata: heading path, page, document title']},
+ run(src,p){const all=headings(src),hs=all.filter(h=>h.lvl<=+p.levels);const items=[];
+  const starts=[...new Set([0,...hs.map(h=>h.s)])].sort((a,b)=>a-b);
+  starts.forEach((a,k)=>{const b=k+1<starts.length?starts[k+1]:src.length;const h=hs.find(x=>x.s===a);const s=(h&&!p.inc)?h.e:a;
+   const path=pathAt(all,a);const meta=path.length?'§ '+path.join(' › '):'(text before the first heading)';
+   const base=C(src,s,b);if(!base.text)return;
+   if(+p.max>0&&sz(base.text,p.unit)>+p.max){const sub=recChunks(src,base.s,base.e,p.max,0,p.unit);sub.forEach((c,i)=>{c.meta=`${meta} (part ${i+1}/${sub.length})`;c.cap=`Section "${path[path.length-1]||'intro'}" is longer than ${p.max} ${p.unit}, so it is split again with recursive splitting: part ${i+1}`;items.push(c);});}
+   else{base.meta=meta;base.cap=`Cut before the heading, so the whole section becomes one chunk: ${meta}`;items.push(base);}});
+  const badges=hs.map(h=>({pos:h.s,text:'H'+h.lvl,cap:`Heading found: "${h.title}" (level ${h.lvl})`}));
+  return {panels:[{title:'Chunks',items}],sp:0,badges,notes:hs.length?[]:['No Markdown headings (#) were found, so the whole text is one section. Try the HR policy sample.']};}},
+{id:'code',group:'Rule-based splitting',name:'5. Code-aware',sample:'code',
+ params:[{k:'max',label:'max_chunk_size (0 = no limit)',type:'number',def:250,min:0,max:5000,step:10,help:'A class bigger than this is split at its method boundaries.'},UNIT],
+ intro:'Code-aware: find where each function and class starts (an AST in real tools) and cut only there.',
+ about:{what:'Splits source code at function and class boundaries, so no function is ever cut in half.',how:['Find top-level def, class and function lines. Decorators stay attached to what they decorate.','Each function or class becomes a chunk, tagged with its name.','A class larger than max_chunk_size is split at its method boundaries.'],prod:['1,000–2,000 characters per chunk','Metadata: file path, symbol name, imports','Pair with keyword search for exact function names']},
+ run(src,p){const lines=lineList(src);
+  const top=/^(@\w|(async\s+)?def\s|class\s|function\s|export\s|(const|let|var)\s+\w+\s*=\s*(async\s*)?(\(|function))/;
+  const bnd=[];let prevDec=false;
+  lines.forEach((L,i)=>{if(!L.t.trim())return;if(top.test(L.t)){if(!prevDec)bnd.push(i);prevDec=L.t.startsWith('@');}else prevDec=false;});
+  const b2=bnd[0]===0?bnd.slice():[0,...bnd];const items=[];
+  const nameOf=t=>{const m=t.match(/(?:def|class|function)\s+(\w+)/)||t.match(/(?:const|let|var)\s+(\w+)/);return m?m[1]:null;};
+  const inner=/^\s+(?:async\s+)?def\s+(\w+)|^\s+(?:async\s+)?(\w+)\s*\([^)]*\)\s*\{/;
+  b2.forEach((li,k)=>{const lj=k+1<b2.length?b2[k+1]:lines.length;
+   const hdr=lines.slice(li,lj).find(L=>top.test(L.t)&&!L.t.startsWith('@'));const nm=hdr?nameOf(hdr.t):null;
+   const kind=hdr?(/^\s*(export\s+)?class\s/.test(hdr.t)?'class':'function'):'module header';
+   const base=C(src,lines[li].s,lines[lj-1].e);if(!base.text)return;
+   const meta=nm?`${kind} ${nm}`:'module header (imports, constants)';
+   if(+p.max>0&&sz(base.text,p.unit)>+p.max){
+    const cuts=[];for(let i=li+1;i<lj;i++)if(inner.test(lines[i].t))cuts.push(i);
+    if(cuts.length){const pts=[li,...cuts,lj];for(let q=0;q<pts.length-1;q++){const c=C(src,lines[pts[q]].s,lines[pts[q+1]-1].e);if(!c.text)continue;const mm=q?lines[pts[q]].t.match(inner):null;const mn=mm?(mm[1]||mm[2]):null;c.meta=q?`${meta} › method ${mn}`:`${meta} (class header)`;c.cap=`${meta} is bigger than ${p.max} ${p.unit}, so it is split at method boundaries: ${c.meta}`;items.push(c);}return;}
+    const sub=recChunks(src,base.s,base.e,p.max,0,p.unit,["\n\n","\n"," ",""]);sub.forEach((c,i)=>{c.meta=`${meta} (part ${i+1})`;c.cap=`Too big and no methods to cut at, so it falls back to recursive splitting: part ${i+1}`;items.push(c);});return;}
+   base.meta=meta;base.cap=`Cut at a ${kind} boundary, so the chunk is the complete ${meta}`;items.push(base);});
+  const badges=bnd.map(i=>({pos:lines[i].s,text:'AST',cap:`Boundary found: "${lines[i].t.trim()}"`}));
+  return {panels:[{title:'Chunks',items}],sp:0,badges};}},
+{id:'semantic',group:'Meaning-based splitting',name:'6. Semantic',sample:'transcript',
+ params:[{k:'ttype',label:'breakpoint_threshold_type',type:'select',def:'percentile',options:[{v:'percentile',t:'percentile'},{v:'absolute',t:'absolute similarity'},{v:'stddev',t:'standard deviation'}],help:'How a "big enough drop" in similarity is decided.'},{k:'pct',label:'percentile (if type = percentile)',type:'number',def:80,min:1,max:99,step:1,help:'Cut at the largest (100 − p)% of drops. LangChain default is 95.'},{k:'abs',label:'similarity cut-off (if type = absolute)',type:'number',def:0.05,min:0,max:1,step:0.01,help:'Cut wherever neighbor similarity is below this value.'},{k:'kk',label:'std-dev multiplier (if type = stddev)',type:'number',def:1,min:0,max:5,step:0.1,help:'Cut where the drop exceeds mean + k × standard deviation.'},{k:'buffer',label:'buffer_size',type:'number',def:1,min:0,max:5,step:1,help:'Neighbor sentences combined with each sentence before comparing, to smooth noise.'},{k:'min',label:'min sentences per chunk',type:'number',def:2,min:1,max:20,step:1,help:'Prevents tiny chunks.'}],
+ intro:'Semantic: compare each sentence with the next one, and cut where the similarity suddenly drops (the topic changed).',
+ about:{what:'Places cuts where the topic changes, detected by a drop in similarity between neighboring sentences.',how:['Split into sentences and embed each one (combined with buffer_size neighbors).','Compute the similarity between each sentence and the next.','Cut where the drop passes the threshold (percentile, absolute or standard deviation).'],prod:['Neural embedding model (bge, e5, text-embedding-3)','Threshold: 95th percentile (LangChain default)','Min / max size guards of about 100 / 1,000 tokens'],sim:'This demo uses word-overlap (TF-IDF) vectors instead of a neural embedding model, so "similar" here means "shares words".'},
+ run(src,p){const ss=sentences(src);if(ss.length<2)return {panels:[{title:'Chunks',items:ss.map(r=>C(src,r[0],r[1]))}],sp:0,notes:['Need at least 2 sentences.']};
+  const tx=ss.map(r=>src.slice(r[0],r[1]));const b=Math.max(0,+p.buffer);
+  const grp=tx.map((_,i)=>tx.slice(Math.max(0,i-b),i+b+1).join(' '));
+  const tf=tfidf(grp);const sims=[];for(let i=0;i<ss.length-1;i++)sims.push(cos(tf.vecs[i],tf.vecs[i+1]));
+  const d=sims.map(x=>1-x);let brk;
+  if(p.ttype==='absolute')brk=sims.map(x=>x<+p.abs);
+  else if(p.ttype==='stddev'){const m=d.reduce((a,x)=>a+x,0)/d.length;const sd=Math.sqrt(d.reduce((a,x)=>a+(x-m)**2,0)/d.length);brk=d.map(x=>x>m+(+p.kk)*sd);}
+  else{const t=pct(d,+p.pct);brk=d.map(x=>x>t);}
+  const minS=Math.max(1,+p.min);const items=[];let st=0;
+  for(let i=0;i<ss.length;i++){const last=i===ss.length-1;if(last||(brk[i]&&i+1-st>=minS)){items.push(C(src,ss[st][0],ss[i][1],{meta:`sentences #${st+1}–#${i+1}`,cap:last?`Last topic segment: sentences #${st+1}–#${i+1}`:`Similarity drops to ${sims[i].toFixed(2)} after sentence #${i+1}, so the topic changes: chunk = sentences #${st+1}–#${i+1}`}));st=i+1;}}
+  const badges=sims.map((x,i)=>({pos:ss[i][1],text:x.toFixed(2),cls:brk[i]?'bad':'',cap:`Similarity between sentence #${i+1} and #${i+2}: ${x.toFixed(2)}${brk[i]?'. This passes the breakpoint, so the topic changes here.':''}`}));
+  return {panels:[{title:'Chunks',items}],sp:0,badges};}},
+{id:'agentic',group:'Meaning-based splitting',name:'7. LLM / agentic (simulated)',sample:'policy',
+ params:[{k:'target',label:'target chunk size (characters, given to the LLM)',type:'number',def:400,min:50,max:5000,step:10,help:'The size the prompt asks the LLM to aim for.'}],
+ intro:'LLM / agentic: an LLM reads the whole document and decides where each topic starts and ends, then titles each chunk.',
+ about:{what:'An LLM reads the document and decides the boundaries and titles, like a human editor would.',how:['Send the document with instructions such as "split into self-contained topics of about N tokens and title each one".','The LLM returns JSON: a title and text per chunk.','Validate the output and store it.'],prod:['A small, cheap model at temperature 0','Target 300–800 tokens stated in the prompt','Best for small, high-value documents'],sim:'Simulated: there is no LLM in this page. Headings (or topic shifts, when there are no headings) stand in for the LLM’s judgment.'},
+ run(src,p){const all=headings(src);const items=[];
+  if(all.length){const r=BY.structure.run(src,{levels:6,max:+p.target,inc:true,unit:'chars'});r.panels[0].items.forEach(c=>{const t=(c.meta||'').replace('§ ','').split(' › ').pop()||'Introduction';c.meta=`LLM title (simulated): ${t}`;c.cap=`The LLM groups this text as one topic and titles it "${t}"`;items.push(c);});}
+  else{const r=BY.semantic.run(src,{ttype:'percentile',pct:80,buffer:1,min:2});r.panels[0].items.forEach(c=>{const t=c.text.split(/\s+/).slice(0,6).join(' ')+'…';c.meta=`LLM title (simulated): ${t}`;c.cap='The LLM decides a new topic starts here';items.push(c);});}
+  return {panels:[{title:'Chunks with LLM titles',items}],sp:0,notes:['Simulated: a real agentic chunker sends the document to an LLM. Here, headings or topic shifts stand in for its decisions.']};}},
+{id:'proposition',group:'Meaning-based splitting',name:'8. Proposition (simulated)',sample:'policy',
+ params:[{k:'ctx',label:'attach section name to each fact',type:'checkbox',def:true,help:'Makes each fact self-contained, much like an LLM resolving "it" or "these days".'}],
+ intro:'Proposition: rewrite the text into small, self-contained facts. Each fact becomes its own chunk.',
+ about:{what:'Rewrites text into atomic, self-contained facts. Each fact is one chunk.',how:['An LLM rewrites each passage into short facts, resolving pronouns and vague words.','Each fact (10–30 tokens) is embedded separately.','Optionally group 5–10 related facts per chunk.'],prod:['Small LLM at temperature 0','Facts of 10–30 tokens','Great for fact lookups, costly to build'],sim:'Simulated: sentences are split at clauses (";", ", and", ", but") and the section name is attached. A real system uses an LLM rewrite.'},
+ run(src,p){const all=headings(src);const items=[];let si=0;
+  sentences(src).forEach(([s,e])=>{const t=src.slice(s,e);if(/^#/.test(t)||/^\|/.test(t.trim()))return;
+   const parts=t.split(/;\s+|,\s+(?:and|but|while|so)\s+/).map(x=>x.trim()).filter(Boolean);const merged=[];
+   parts.forEach(x=>{if(merged.length&&x.split(/\s+/).length<3)merged[merged.length-1]+=' '+x;else merged.push(x);});
+   const path=pathAt(all,s);const pre=p.ctx&&path.length?'['+path[path.length-1]+'] ':'';
+   merged.forEach(x=>{let f=x.charAt(0).toUpperCase()+x.slice(1);if(!/[.!?]$/.test(f))f+='.';
+    items.push({s,e,text:f,raw:false,prefix:pre,ci:si,label:`Fact ${items.length+1}`,meta:merged.length>1?'split from a longer sentence':'one sentence = one fact',cap:`Fact: "${pre}${f}"`});});si++;});
+  return {panels:[{title:'Propositions (facts)',items}],sp:0,notes:['Simulated: a real proposition chunker uses an LLM to rewrite text into facts.']};}},
+{id:'parent',group:'Search small, send big',name:'9. Parent-document',sample:'policy',query:true,
+ params:[{k:'psize',label:'parent_chunk_size',type:'number',def:420,min:20,max:5000,step:10,help:'What gets sent to the LLM. Stored in a docstore, not embedded.'},{k:'csize',label:'child_chunk_size',type:'number',def:110,min:10,max:2000,step:10,help:'What gets embedded and searched. Small for sharp matching.'},{k:'covl',label:'child_overlap',type:'number',def:15,min:0,max:500,step:5,help:'Overlap between neighboring children.'},TOPK(3,'How many children to retrieve before deduplicating to parents.'),UNIT],
+ intro:'Parent-document: cut big parents for the docstore, cut small children for the vector DB, search the children, and send their parents.',
+ about:{what:'Search small chunks for precise matching, but send their larger parent to the LLM for full context.',how:['Split into parents and store them in a docstore (not embedded).','Split each parent into children and embed the children, tagged with their parent_id.','At query time, retrieve the top-k children, deduplicate their parent_ids, and send those parents.'],prod:['Parents 1,000–2,000 tokens','Children 100–400 tokens, overlap 20–50','top_k 10–20 children, deduplicated to 3–5 parents']},
+ run(src,p,q){const parents=recChunks(src,0,src.length,p.psize,0,p.unit);const kids=[];
+  parents.forEach((pa,i)=>{pa.ci=i;pa.label=`Parent ${i+1}`;pa.cap=`Parent ${i+1} is stored whole in the docstore. It is NOT embedded.`;
+   recChunks(src,pa.s,pa.e,p.csize,p.covl,p.unit).forEach(c=>{c.ci=i;c.parent=i;c.label=`Child ${kids.length+1}`;c.meta=`belongs to parent ${i+1}`;c.cap=`Child ${kids.length+1} is cut from parent ${i+1} and embedded in the vector DB, tagged parent_id = ${i+1}`;kids.push(c);});});
+  const tf=tfidf(kids.map(k=>k.text));const qv=tf.q(q);kids.forEach((k,i)=>{k.score=cos(qv,tf.vecs[i]);});
+  const top=topK(kids,'score',p.k);const pids=[...new Set(top.map(i=>kids[i].parent))];
+  const ret=pids.map(pi=>Object.assign({},parents[pi],{label:`Sent to LLM: parent ${pi+1}`,meta:`matched via child ${top.filter(i=>kids[i].parent===pi).map(i=>i+1).join(', ')}`,cap:`A matched child points to parent ${pi+1}, so the whole parent is sent to the LLM`,raw:false,score:undefined}));
+  return {panels:[{title:'Parents → docstore (sent to the LLM, never searched)',items:parents},{title:'Children → vector DB (embedded and searched)',items:kids}],sp:0,
+   ret:{panel:1,matched:top,items:ret,title:'Sent to the LLM',capQ:top.length?`The query is compared with all ${kids.length} small children. The top ${top.length} matches are outlined.`:'No child shares words with the query. Try a different query.'}};}},
+{id:'window',group:'Search small, send big',name:'10. Sentence window',sample:'policy',query:true,
+ params:[{k:'win',label:'window_size (± sentences)',type:'number',def:1,min:0,max:10,step:1,help:'How many sentences are added on each side of the match.'},TOPK(1)],
+ intro:'Sentence window: embed every sentence on its own, find the best match, then send it together with its neighbors.',
+ about:{what:'Embed single sentences, then return the best match plus its neighboring sentences.',how:['Embed each sentence and remember its position.','Find the best-matching sentence(s).','Expand ± window_size sentences around each match and send that window.'],prod:['window_size ±2 to ±3 (LlamaIndex default 3)','top_k 2–5','Metadata: doc_id plus sentence index']},
+ run(src,p,q){const ss=sentences(src);const items=ss.map((r,i)=>C(src,r[0],r[1],{label:`Sentence #${i+1}`,cap:`Sentence #${i+1} is embedded on its own, with its position remembered`}));
+  const tf=tfidf(items.map(x=>x.text));const qv=tf.q(q);items.forEach((x,i)=>{x.score=cos(qv,tf.vecs[i]);});
+  const top=topK(items,'score',p.k);const w=Math.max(0,+p.win);
+  const wins=top.map(i=>[Math.max(0,i-w),Math.min(ss.length-1,i+w),i]).sort((a,b)=>a[0]-b[0]);const mg=[];
+  wins.forEach(x=>{const l=mg[mg.length-1];if(l&&x[0]<=l[1]+1){l[1]=Math.max(l[1],x[1]);l[2].push(x[2]);}else mg.push([x[0],x[1],[x[2]]]);});
+  const ret=mg.map(([a,b,m])=>C(src,ss[a][0],ss[b][1],{label:`Window #${a+1}–#${b+1}`,meta:`matched #${m.map(i=>i+1).join(', #')}, expanded ±${w}`,cap:`Expand ±${w} sentence(s) around the match, then send sentences #${a+1}–#${b+1}`,raw:false}));
+  return {panels:[{title:'Sentences → each embedded separately',items}],sp:0,ret:{panel:0,matched:top,items:ret,title:'Sent to the LLM (window)',capQ:top.length?`The query is compared with all ${items.length} sentences. The best match is outlined.`:'No sentence shares words with the query. Try a different query.'}};}},
+{id:'hier',group:'Search small, send big',name:'11. Hierarchical (auto-merging)',sample:'policy',query:true,
+ params:[{k:'sizes',label:'chunk_sizes (big → small)',type:'text',def:'600, 220, 90',help:'Comma-separated sizes, one per level.'},TOPK(4,'How many of the smallest chunks to retrieve.'),{k:'thr',label:'merge threshold',type:'number',def:0.5,min:0.1,max:1,step:0.05,help:'If at least this fraction of a parent’s children match, return the parent instead.'},UNIT],
+ intro:'Hierarchical: index the text at several sizes. Search the smallest chunks, and merge up to the parent when enough of its children match.',
+ about:{what:'Index the same text at several sizes. Small chunks are searched, and they are auto-merged into their bigger parent when many siblings match.',how:['Build level 1 (big), split each into level 2, then into level 3 (smallest).','Search the smallest chunks.','If at least the threshold fraction of a parent’s children matched, return the parent instead.'],prod:['Sizes [2048, 512, 128] tokens (LlamaIndex default)','Auto-merge threshold 0.5','top_k 5–10 leaves']},
+ run(src,p,q){let sizes=String(p.sizes).split(/[\s,]+/).map(Number).filter(x=>x>0);if(!sizes.length)sizes=[600,220,90];sizes.sort((a,b)=>b-a);
+  const root={s:0,e:src.length,children:[],ci:0};const levels=[];let prev=[root];
+  sizes.forEach((size,lvl)=>{const lv=[];prev.forEach(n=>{recChunks(src,n.s,n.e,size,0,p.unit).forEach(c=>{c.parentNode=n;c.children=[];n.children.push(c);lv.push(c);});});
+   lv.forEach((c,i)=>{c.ci=lvl===0?i:c.parentNode.ci;c.label=`L${lvl+1} #${i+1}`;c.cap=`Level ${lvl+1} chunk ${i+1} (≤ ${size} ${p.unit})${lvl?` cut inside ${c.parentNode.label}`:''}`;if(lvl)c.meta=`child of ${c.parentNode.label}`;});levels.push(lv);prev=lv;});
+  const leaves=levels[levels.length-1];const tf=tfidf(leaves.map(x=>x.text));const qv=tf.q(q);leaves.forEach((x,i)=>{x.score=cos(qv,tf.vecs[i]);});
+  const top=topK(leaves,'score',p.k);const set=new Set(top.map(i=>leaves[i]));const merged=new Set();
+  for(let l=levels.length-2;l>=0;l--)levels[l].forEach(n=>{const k=n.children;if(k.length>1&&k.filter(x=>set.has(x)).length/k.length>=+p.thr){k.forEach(x=>set.delete(x));set.add(n);merged.add(n);}});
+  const ret=[...set].sort((a,b)=>a.s-b.s).map(n=>Object.assign({},n,{label:n.label+(merged.has(n)?' (auto-merged)':''),meta:merged.has(n)?`≥ ${Math.round(p.thr*100)}% of its children matched, so the bigger parent is returned`:'a single leaf matched, so the leaf is returned',cap:merged.has(n)?`Enough children of ${n.label} matched, so merge up and send the parent`:`Send leaf ${n.label}`,raw:false,children:undefined,parentNode:undefined,score:undefined}));
+  levels.forEach(lv=>lv.forEach(c=>{delete c.children;delete c.parentNode;}));
+  return {panels:levels.map((lv,l)=>({title:`Level ${l+1} · chunks ≤ ${sizes[l]} ${p.unit}`,items:lv})),sp:0,ret:{panel:levels.length-1,matched:top,items:ret,title:'Sent to the LLM after auto-merging',capQ:top.length?`The query is compared with the ${leaves.length} smallest chunks. The top ${top.length} are outlined.`:'No chunk shares words with the query. Try a different query.'}};}},
+{id:'contextual',group:'Context repair',name:'12. Contextual chunking',sample:'policy',query:true,
+ params:[SIZE(150),OVL(0),UNIT,{k:'title',label:'include document title',type:'checkbox',def:true,help:'Adds the H1 title in front of the section path.'},TOPK(2)],
+ intro:'Contextual: chunk normally, then prepend a short context line (document + section) to each chunk before embedding.',
+ about:{what:'Prepends context (document title plus section) to each chunk before embedding, so orphan chunks become findable.',how:['Chunk the text normally.','Build a context line for each chunk. The full version has an LLM write it.','Embed and BM25-index the context plus the chunk.'],prod:['Context of 50–100 tokens written by a small LLM','Prompt caching keeps the cost down','Combine with BM25 and a reranker'],sim:'This page shows the free version: the context is the title and heading path. Full contextual retrieval has an LLM write a situating sentence for each chunk.'},
+ run(src,p,q){const all=headings(src);const title=(all.find(h=>h.lvl===1)||{}).title||'Document';
+  const items=recChunks(src,0,src.length,p.size,p.overlap,p.unit);
+  items.forEach((c,i)=>{const path=pathAt(all,c.s).filter(t=>t!==title);const parts=[...(p.title?[title]:[]),...path];c.prefix=parts.length?`[${parts.join(' › ')}] `:'';c.cap=c.prefix?`Chunk ${i+1}: the context "${c.prefix.trim()}" is prepended before embedding`:`Chunk ${i+1}: no headings above it, so there is no context to add`;});
+  const tf=tfidf([...items.map(c=>c.text),...items.map(c=>c.prefix+c.text)]);const qv=tf.q(q);const n=items.length;
+  items.forEach((c,i)=>{c.rawScore=cos(qv,tf.vecs[i]);c.score=cos(qv,tf.vecs[n+i]);c.meta=`query score: without context ${c.rawScore.toFixed(2)} → with context ${c.score.toFixed(2)}`;});
+  const top=topK(items,'score',p.k);
+  const ret=top.map(i=>Object.assign({},items[i],{label:`Retrieved: chunk ${i+1}`,cap:`Ranked by the contextual score: chunk ${i+1} (${items[i].rawScore.toFixed(2)} → ${items[i].score.toFixed(2)})`,raw:false}));
+  return {panels:[{title:'Contextualized chunks',items}],sp:0,ret:{panel:0,matched:top,items:ret,title:'Retrieved',capQ:'The query is scored against each contextualized chunk. Each card shows its score with and without context.'}};}},
+{id:'late',group:'Context repair',name:'13. Late chunking (simulated)',sample:'policy',query:true,
+ params:[SIZE(140),{k:'win',label:'context window (± characters)',type:'number',def:300,min:0,max:5000,step:10,help:'How much surrounding text each chunk’s tokens "saw" during embedding.'},{k:'w',label:'context weight',type:'number',def:0.7,min:0,max:3,step:0.1,help:'How strongly the surrounding text influences the chunk vector.'},TOPK(2),UNIT],
+ intro:'Late chunking: embed the whole document first, so every token sees its surroundings, then average the token vectors per chunk.',
+ about:{what:'Embed the whole document first, then pool the token vectors per chunk, so each chunk vector carries context from around it.',how:['Run the full document through a long-context embedding model.','Get one vector per token. Each token has "seen" the whole document.','Mean-pool the token vectors inside each chunk span.'],prod:['Long-context embedding model (for example 8,192 tokens)','Spans of 256–512 tokens, mean pooling','No LLM calls needed'],sim:'Simulated: each chunk vector is mixed with the vector of its surrounding text, which imitates tokens that saw their context. Real late chunking does this inside a transformer embedding model.'},
+ run(src,p,q){const items=recChunks(src,0,src.length,p.size,0,p.unit);const CW=+p.win,w=+p.w;
+  const ctx=items.map(c=>src.slice(Math.max(0,c.s-CW),Math.min(src.length,c.e+CW)));
+  const tf=tfidf([...items.map(c=>c.text),...ctx]);const qv=tf.q(q);const n=items.length;
+  items.forEach((c,i)=>{c.naive=cos(qv,tf.vecs[i]);c.score=cos(qv,addV(tf.vecs[i],tf.vecs[n+i],w));c.meta=`query score: embedded alone ${c.naive.toFixed(2)} → late ${c.score.toFixed(2)}`;c.cap=`Chunk ${i+1}: its vector is pooled from tokens that also saw ±${CW} characters of surrounding text`;});
+  const topL=topK(items,'score',p.k),topN=topK(items,'naive',p.k);
+  const ret=topL.map((i,r)=>Object.assign({},items[i],{label:`Late rank ${r+1}: chunk ${i+1}`,meta:`rank when embedded alone: ${topN.indexOf(i)>=0?topN.indexOf(i)+1:'not in top '+p.k} · ${items[i].meta}`,cap:`Late chunking ranks chunk ${i+1} at #${r+1}`,raw:false}));
+  return {panels:[{title:'Chunks (context-aware vectors)',items}],sp:0,ret:{panel:0,matched:topL,items:ret,title:'Retrieved with late chunking',capQ:'The query is scored against each chunk embedded alone, and against its context-aware (late) vector.'}};}},
+{id:'table',group:'Special content',name:'14. Table-aware',sample:'policy',
+ params:[{k:'tsize',label:'text chunk_size (non-table text)',type:'number',def:300,min:20,max:5000,step:10,help:'Normal text around tables is split with recursive splitting.'},{k:'maxt',label:'keep table whole if ≤',type:'number',def:120,min:0,max:5000,step:10,help:'Tables up to this size stay as one chunk.'},{k:'rows',label:'rows_per_chunk',type:'number',def:2,min:1,max:200,step:1,help:'How many rows go into each chunk of a big table.'},{k:'rep',label:'repeat header row',type:'checkbox',def:true,help:'Turn off to see why chunks without a header are useless.'},{k:'sum',label:'add summary chunk',type:'checkbox',def:true,help:'A plain-English description of the table, which embeds better than a raw grid.'},UNIT],
+ intro:'Table-aware: detect tables and never cut through a row. Small tables stay whole; big ones are split by rows with the header repeated.',
+ about:{what:'Detects tables and never cuts through a row. Small tables stay whole, and big ones are split by rows with the header repeated.',how:['Detect table blocks (Markdown lines starting with "|").','Keep a table whole if it is small enough. Otherwise split it every rows_per_chunk rows and repeat the header.','Optionally add a summary chunk. Normal text is split with recursive splitting.'],prod:['Keep whole if under about 500–1,000 tokens','20–50 rows per chunk, header always repeated','Layout-aware parsers: Unstructured, Docling, LlamaParse']},
+ run(src,p){const lines=lineList(src);const items=[];let i=0,textStart=0,ti=0;
+  const flush=(a,b)=>{if(b>a)recChunks(src,a,b,p.tsize,0,p.unit).forEach(c=>{c.meta='normal text (recursive splitting)';c.cap='Normal text is split with recursive splitting';items.push(c);});};
+  while(i<lines.length){
+   if(lines[i].t.trim().startsWith('|')){let j=i;while(j<lines.length&&lines[j].t.trim().startsWith('|'))j++;
+    flush(textStart,lines[i].s);ti++;
+    const hasSep=j-i>1&&/^\s*\|?\s*:?-{2,}/.test(lines[i+1].t);const hdrEnd=hasSep?i+2:i+1;
+    const hdrText=lines.slice(i,hdrEnd).map(L=>L.t).join('\n');const whole=C(src,lines[i].s,lines[j-1].e);
+    if(sz(whole.text,p.unit)<=+p.maxt){whole.meta=`table ${ti} kept whole (${sz(whole.text,p.unit)} ≤ ${p.maxt} ${p.unit})`;whole.cap=`Table ${ti} is small enough, so it is kept whole as one chunk`;items.push(whole);}
+    else{const rp=Math.max(1,+p.rows);for(let r=hdrEnd,k=0;r<j;r+=rp,k++){const re=Math.min(j,r+rp);const first=k===0;const c=C(src,lines[first?i:r].s,lines[re-1].e);
+      if(!first&&p.rep)c.prefix=hdrText+'\n';c.raw=first;
+      c.meta=`table ${ti}, rows ${r-hdrEnd+1}–${re-hdrEnd}${first?' (with header)':p.rep?' + repeated header':' (no header!)'}`;
+      c.cap=first?`Table ${ti} is too big (> ${p.maxt} ${p.unit}), so it is split by rows. The first rows come with the header.`:(p.rep?'Next rows: the header row is repeated so the chunk makes sense alone':'Next rows WITHOUT a header. The columns are now meaningless.');items.push(c);}}
+    if(p.sum){const cols=lines[i].t.split('|').map(x=>x.trim()).filter(Boolean);const rows=lines.slice(hdrEnd,j).map(L=>L.t.split('|').map(x=>x.trim()).filter(Boolean)[0]).filter(Boolean);
+     items.push({text:`Summary: table with columns ${cols.join(', ')} and ${rows.length} rows (${rows.join(', ')}).`,raw:false,virtual:true,label:`Summary of table ${ti}`,meta:'plain-English summary that links to the full table',cap:'A plain-English summary chunk is added, since it embeds better than a raw grid'});}
+    textStart=lines[j-1].e+1;i=j;}
+   else i++;}
+  flush(textStart,src.length);
+  return {panels:[{title:'Chunks',items}],sp:0,notes:ti?[]:['No Markdown table (lines starting with "|") was found. Try the HR policy sample.']};}}
+];
+const BY={};STRATS.forEach(s=>{BY[s.id]=s;});
+
+function post(res){
+  res.badges=res.badges||[];res.notes=res.notes||[];
+  res.panels.forEach(pn=>{let prev=null;pn.items.forEach((c,i)=>{if(c.ci===undefined)c.ci=i;
+    if(c.raw&&prev&&prev.raw&&!c.virtual&&c.s<prev.e&&c.s>=prev.s&&c.parent===prev.parent)c.ov=Math.min(prev.e-c.s,c.text.length);
+    if(!c.virtual&&c.s!==undefined)prev=c;});});
+  return res;
+}
+
+/*__UI__*/
+if(typeof document!=='undefined'){
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+let strat=STRATS[0],P={},SRC='',QUERY='',RES=null,STEPS=[],K=0,timer=null,playing=false,deb=null;
+
+const sel=$('#strategy');
+let grp=null,og=null;
+STRATS.forEach(s=>{if(s.group!==grp){grp=s.group;og=document.createElement('optgroup');og.label=grp;sel.appendChild(og);}const o=document.createElement('option');o.value=s.id;o.textContent=s.name;og.appendChild(o);});
+
+function buildAbout(){const a=strat.about;$('#about').innerHTML=`<h2>ABOUT THIS STRATEGY</h2>${a.sim?`<span class="tag">Simulated in the browser</span>`:''}<p>${esc(a.what)}</p><h3>How it works</h3><ol>${a.how.map(x=>`<li>${esc(x)}</li>`).join('')}</ol><h3>Typical production settings</h3><ul>${a.prod.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>${a.sim?`<p style="font-size:12.5px;color:var(--muted)">${esc(a.sim)}</p>`:''}`;}
+function buildForm(){const f=$('#params');
+  f.innerHTML=strat.params.map(q=>{let input;
+    if(q.type==='select')input=`<select data-k="${q.k}">${q.options.map(o=>`<option value="${o.v}">${esc(o.t)}</option>`).join('')}</select>`;
+    else if(q.type==='checkbox')input=`<input type="checkbox" data-k="${q.k}">`;
+    else input=`<input type="${q.type}" data-k="${q.k}"${q.min!==undefined?` min="${q.min}"`:''}${q.max!==undefined?` max="${q.max}"`:''}${q.step!==undefined?` step="${q.step}"`:''}>`;
+    return `<label class="prm"><span class="pk">${esc(q.label)}</span>${input}<span class="ph">${esc(q.help||'')}</span></label>`;}).join('');
+  strat.params.forEach(q=>{const el=f.querySelector(`[data-k="${q.k}"]`);if(q.type==='checkbox')el.checked=!!q.def;else el.value=q.def;el.addEventListener('input',changed);el.addEventListener('change',changed);});
+  $('#qwrap').style.display=strat.query?'block':'none';}
+function readP(){const o={};strat.params.forEach(q=>{const el=$('#params').querySelector(`[data-k="${q.k}"]`);o[q.k]=q.type==='checkbox'?el.checked:q.type==='number'?(el.value===''||isNaN(+el.value)?q.def:+el.value):el.value;});if(!o.unit)o.unit='chars';return o;}
+
+function compute(){P=readP();SRC=$('#doc').value;QUERY=$('#query').value;
+  try{RES=post(strat.run(SRC,P,QUERY));}catch(err){RES={panels:[{title:'Chunks',items:[]}],sp:0,badges:[],notes:['Something went wrong with these settings: '+err.message]};}
+  STEPS=buildSteps();}
+function defCap(c,j){const u=P.unit;return `Chunk ${j+1}: ${sz(c.text,u)} ${u}${c.ov?`. The first ${sz(c.text.slice(0,c.ov),u)} ${u} (striped) are repeated from the previous chunk.`:''}`;}
+function buildSteps(){const st=[{t:'intro',cap:strat.intro}];
+  RES.badges.forEach((b,i)=>st.push({t:'badge',i,cap:b.cap||b.text}));
+  RES.panels.forEach((pn,pi)=>pn.items.forEach((c,j)=>st.push({t:'item',p:pi,j,cap:c.cap||defCap(c,j)})));
+  if(RES.ret){st.push({t:'query',cap:`Query: "${QUERY}". ${RES.ret.capQ}`});RES.ret.items.forEach((c,j)=>st.push({t:'ret',j,cap:c.cap||c.label}));}
+  const n=RES.panels[RES.sp].items.length;st.push({t:'done',cap:`Done: ${n} chunk${n===1?'':'s'} in "${RES.panels[RES.sp].title}". Change any parameter to see the effect, or press Animate to replay.`});return st;}
+function vis(k){const v={badges:new Set(),items:RES.panels.map(()=>0),query:false,ret:0,last:STEPS[k]};
+  for(let i=0;i<=k;i++){const s=STEPS[i];if(s.t==='badge')v.badges.add(s.i);if(s.t==='item')v.items[s.p]=s.j+1;if(s.t==='query')v.query=true;if(s.t==='ret')v.ret=s.j+1;}return v;}
+function scrollIn(box,el){if(!box||!el)return;const t=el.offsetTop,b=t+el.offsetHeight;if(t<box.scrollTop)box.scrollTop=t-10;else if(b>box.scrollTop+box.clientHeight)box.scrollTop=b-box.clientHeight+10;}
+
+function renderSource(v){const src=SRC;
+  const its=RES.panels[RES.sp].items.slice(0,v.items[RES.sp]).filter(c=>c.s!==undefined&&!c.virtual);
+  const mp=RES.ret?RES.panels[RES.ret.panel].items:[];
+  const mr=v.query&&RES.ret?RES.ret.matched.map(i=>mp[i]).filter(c=>c&&c.s!==undefined):[];
+  const bs=RES.badges.map((b,i)=>Object.assign({i},b)).filter(b=>v.badges.has(b.i));
+  const pts=new Set([0,src.length]);its.forEach(c=>{pts.add(c.s);pts.add(c.e);});mr.forEach(c=>{pts.add(c.s);pts.add(c.e);});bs.forEach(b=>pts.add(Math.min(b.pos,src.length)));
+  const arr=[...pts].sort((a,b)=>a-b);
+  const newE=(v.last.t==='item'&&v.last.p===RES.sp)?RES.panels[RES.sp].items[v.last.j].e:-1;const newB=v.last.t==='badge'?v.last.i:-1;
+  const cutAt=new Set(its.map(c=>c.e));
+  const bh=pos=>bs.filter(b=>Math.min(b.pos,src.length)===pos).map(b=>`<span class="bdg ${b.cls||''}${b.i===newB?' pop':''}">${esc(b.text)}</span>`).join('');
+  let h='';
+  for(let k=0;k<arr.length-1;k++){const a=arr[k],b=arr[k+1];h+=bh(a);
+    const cov=[...new Set(its.filter(c=>c.s<=a&&c.e>=b).map(c=>c.ci))];const m=mr.some(c=>c.s<=a&&c.e>=b);
+    const cl=(cov.length===1?'h'+(cov[0]%6):cov.length>1?'ovl':'')+(m?' mt':'');
+    h+=cl?`<span class="${cl}">${esc(src.slice(a,b))}</span>`:esc(src.slice(a,b));
+    if(cutAt.has(b)&&b<src.length)h+=`<span class="cut${b===newE?' pop':''}" title="cut point">✂</span>`;}
+  h+=bh(src.length);
+  const box=$('#source');box.innerHTML=h||'<span class="empty">Paste some text above.</span>';scrollIn(box,box.querySelector('.pop'));}
+function card(c,j,pi,v){const isNew=(pi>=0&&v.last.t==='item'&&v.last.p===pi&&v.last.j===j)||(pi===-1&&v.last.t==='ret'&&v.last.j===j);
+  const isM=pi>=0&&v.query&&RES.ret&&RES.ret.panel===pi&&RES.ret.matched.includes(j);
+  const u=P.unit||'chars';const t=c.text;
+  let body=c.ov?`<u class="ovu">${esc(t.slice(0,c.ov))}</u>${esc(t.slice(c.ov))}`:esc(t);if(c.prefix)body=`<u class="pre">${esc(c.prefix)}</u>`+body;
+  const score=(v.query&&c.score!==undefined)?` · score ${c.score.toFixed(2)}`:'';
+  const ovs=c.ov?` · ${sz(t.slice(0,c.ov),u)} ${u} overlap`:'';
+  return `<div class="card h${c.ci%6}${isNew?' pop':''}${isM?' match':''}"><div class="lab">${esc(c.label||'Chunk '+(j+1))} · ${sz((c.prefix||'')+t,u)} ${u}${ovs}${score}</div><div class="txt">${body}</div>${c.meta?`<div class="meta">${esc(c.meta)}</div>`:''}</div>`;}
+function renderPanels(v){
+  $('#panels').innerHTML=RES.panels.map((pn,pi)=>{const n=v.items[pi];const cards=pn.items.slice(0,n).map((c,j)=>card(c,j,pi,v)).join('');
+    return `<section class="pnl"><div class="pt">${esc(pn.title)}<span class="cnt">${n} / ${pn.items.length}</span></div><div class="cards">${cards||'<div class="empty">Waiting for the first cut…</div>'}</div></section>`;}).join('');
+  const r=$('#ret');
+  if(RES.ret&&v.query){r.style.display='block';r.innerHTML=`<div class="pt">${esc(RES.ret.title)}<span class="cnt">query: “${esc(QUERY)}”</span></div><div class="cards">${RES.ret.items.slice(0,v.ret).map((c,j)=>card(c,j,-1,v)).join('')||'<div class="empty">Scoring the query…</div>'}</div>`;}
+  else r.style.display='none';
+  document.querySelectorAll('.cards').forEach(b=>scrollIn(b,b.querySelector('.pop')));
+  if(v.query&&v.last.t==='query'){const m=document.querySelector('.card.match');if(m)scrollIn(m.parentElement,m);}}
+function renderStats(){const its=RES.panels[RES.sp].items;const u=P.unit||'chars';const s=its.map(c=>sz((c.prefix||'')+c.text,u));
+  $('#stats').innerHTML=s.length?`<span>Chunks: <b>${s.length}</b></span><span>Average: <b>${Math.round(s.reduce((a,x)=>a+x,0)/s.length)}</b> ${u}</span><span>Smallest: <b>${Math.min(...s)}</b></span><span>Largest: <b>${Math.max(...s)}</b></span><span>Document: <b>${sz(SRC,u)}</b> ${u}</span>`:'';}
+function show(k){K=Math.max(0,Math.min(k,STEPS.length-1));const v=vis(K);renderSource(v);renderPanels(v);renderStats();
+  $('#cap').textContent=`Step ${K+1} of ${STEPS.length} · ${STEPS[K].cap}`;
+  $('#notes').innerHTML=RES.notes.map(n=>`<div class="note">${esc(n)}</div>`).join('');
+  $('#pause').textContent=playing?'⏸ Pause':'▶ Resume';}
+function delay(){return +$('#speed').value;}
+function tick(){clearTimeout(timer);if(!playing)return;if(K<STEPS.length-1){show(K+1);timer=setTimeout(tick,delay());}else{playing=false;show(K);}}
+function animate(){compute();playing=true;show(0);clearTimeout(timer);timer=setTimeout(tick,delay());}
+function changed(){clearTimeout(deb);deb=setTimeout(()=>{playing=false;clearTimeout(timer);compute();show(STEPS.length-1);$('#cap').textContent='Result updated for your settings. Press ▶ Animate to watch it step by step.';},250);}
+
+function loadSample(name){if(name==='custom')return;$('#doc').value=SAMPLES[name];$('#sample').value=name;$('#query').value=QUERIES[name];}
+function setStrategy(id){strat=BY[id];sel.value=id;
+  const cur=$('#doc').value;const isSample=Object.values(SAMPLES).includes(cur);
+  if(isSample&&SAMPLES[strat.sample]!==cur)loadSample(strat.sample);
+  buildAbout();buildForm();animate();}
+
+sel.addEventListener('change',()=>setStrategy(sel.value));
+$('#sample').addEventListener('change',e=>{if(e.target.value!=='custom'){loadSample(e.target.value);animate();}});
+$('#doc').addEventListener('input',()=>{$('#sample').value=Object.keys(SAMPLES).find(k=>SAMPLES[k]===$('#doc').value)||'custom';changed();});
+$('#query').addEventListener('input',changed);
+$('#animate').addEventListener('click',animate);
+$('#pause').addEventListener('click',()=>{if(playing){playing=false;clearTimeout(timer);show(K);}else{if(K>=STEPS.length-1)K=0;playing=true;show(K);timer=setTimeout(tick,delay());}});
+$('#back').addEventListener('click',()=>{playing=false;clearTimeout(timer);show(K-1);});
+$('#fwd').addEventListener('click',()=>{playing=false;clearTimeout(timer);show(K+1);});
+$('#all').addEventListener('click',()=>{playing=false;clearTimeout(timer);show(STEPS.length-1);});
+$('#speed').addEventListener('input',()=>{$('#spv').textContent=$('#speed').value+' ms';});
+$('#reset').addEventListener('click',()=>{buildForm();loadSample(strat.sample);animate();});
+
+loadSample('policy');setStrategy('fixed');
+}
+</script>
+</body>
+</html>
